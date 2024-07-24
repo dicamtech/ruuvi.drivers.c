@@ -838,12 +838,28 @@ rd_status_t ri_tmp117_data_get (rd_sensor_data_t * const data)
     if ( (RD_SUCCESS == err_code) && (RD_UINT64_INVALID != m_timestamp)
             && !isnan (m_temperature))
     {
+        /*
+            IH: In the original TMP117 code, 'rd_sensor_data_set' was used, which overrides temperature 
+            readings from other sensors. For the spear-grain application, we need the temperature reading 
+            from the sensor inside the grain. Therefore, I replaced 'rd_sensor_data_set' with 
+            'rd_sensor_data_populate', which preserves existing temperature data.
+        */
+        rd_sensor_data_t d_environmental;
         rd_sensor_data_fields_t env_fields = {.bitfield = 0};
+        float env_values[1];
+        env_values[0] = m_temperature;
         env_fields.datas.temperature_c = 1;
-        rd_sensor_data_set (data,
-                            env_fields,
-                            m_temperature);
-        data->timestamp_ms = m_timestamp;
+        d_environmental.data = env_values;
+        d_environmental.valid  = env_fields;
+        d_environmental.fields = env_fields;
+        d_environmental.timestamp_ms = m_timestamp;
+        rd_sensor_data_populate (data,
+                                 &d_environmental,
+                                 data->fields);
+        //rd_sensor_data_set (data,
+        //                    env_fields,
+        //                    m_temperature);
+        //data->timestamp_ms = m_timestamp;
     }
 
     return err_code;
